@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>تحدي المعلومات</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --text:#1c2733; --muted:#6b7a88; --accent:#2f80ed; --ok:#2e9e5b; --bad:#d64545; --line:#dfe5ea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14181d; --card:#1f252c; --text:#e8edf2; --muted:#92a0ad; --line:#323b44; }
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; min-height:100%; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { display:flex; justify-content:center; padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom)); }
+  .screen { display:none; width:min(100%,460px); flex-direction:column; gap:14px; margin:auto 0; }
+  .screen.on { display:flex; }
+  h1 { margin:0; text-align:center; font-size:1.7rem; }
+  .card { background:var(--card); border-radius:16px; padding:16px; box-shadow:0 3px 14px rgba(0,0,0,.08); }
+  .stats { display:flex; justify-content:space-around; text-align:center; }
+  .stats b { display:block; font-size:1.4rem; }
+  .stats span { color:var(--muted); font-size:.85rem; }
+  button { font:inherit; border:0; border-radius:12px; padding:14px; cursor:pointer; }
+  .main { background:var(--accent); color:#fff; font-weight:700; font-size:1.05rem; }
+  .main:disabled { opacity:.5; cursor:default; }
+  .alt { background:var(--card); color:var(--text); border:1px solid var(--line); }
+  .top { display:flex; justify-content:space-between; color:var(--muted); font-size:.95rem; }
+  .bar { height:8px; background:var(--line); border-radius:8px; overflow:hidden; }
+  .bar i { display:block; height:100%; width:100%; background:var(--accent); transition:width 1s linear; }
+  #q { font-size:1.25rem; font-weight:700; line-height:1.6; text-align:center; min-height:4.5em; display:flex; align-items:center; justify-content:center; }
+  .opt { background:var(--card); color:var(--text); border:2px solid var(--line); font-size:1.05rem; }
+  .opt.ok { border-color:var(--ok); background:var(--ok); color:#fff; }
+  .opt.bad { border-color:var(--bad); background:var(--bad); color:#fff; }
+  .big { font-size:3rem; font-weight:800; text-align:center; }
+  .muted { color:var(--muted); text-align:center; font-size:.9rem; }
+  ol { margin:6px 0 0; padding-inline-start:22px; line-height:1.9; }
+  input.nm { font:inherit; padding:12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); text-align:center; width:100%; }
+</style>
+</head>
+<body>
+
+<section id="home" class="screen on">
+  <h1>🧠 تحدي المعلومات</h1>
+  <div class="card stats">
+    <div><b id="streak">0</b><span>أيام متتالية 🔥</span></div>
+    <div><b id="bestAll">0</b><span>أفضل نتيجة</span></div>
+  </div>
+  <input class="nm" id="nameIn" maxlength="20" placeholder="اسمك في الترتيب">
+  <button class="main" id="dailyBtn">تحدي اليوم</button>
+  <div class="muted" id="dailyNote"></div>
+  <button class="alt" id="practiceBtn">تدريب (أسئلة عشوائية)</button>
+  <button class="alt" id="boardBtn">🏆 ترتيب اليوم</button>
+</section>
+
+<section id="game" class="screen">
+  <div class="top"><span id="prog"></span><span>النقاط: <b id="score">0</b></span></div>
+  <div class="bar"><i id="barI"></i></div>
+  <div class="card" id="q"></div>
+  <div id="opts" style="display:flex;flex-direction:column;gap:10px"></div>
+</section>
+
+<section id="result" class="screen">
+  <h1 id="rTitle"></h1>
+  <div class="card">
+    <div class="big" id="rScore"></div>
+    <div class="muted" id="rCorrect"></div>
+  </div>
+  <div class="card" id="dayCard"><b>🏆 ترتيب اليوم</b><ol id="dayList"></ol></div>
+  <div class="card"><b>أعلى نتايجك</b><ol id="topList"></ol></div>
+  <button class="main" id="shareBtn">شارك نتيجتك</button>
+  <button class="alt" id="homeBtn">الرئيسية</button>
+</section>
+
+<section id="board" class="screen">
+  <h1>🏆 ترتيب اليوم</h1>
+  <div class="card"><ol id="boardList"></ol></div>
+  <button class="alt" id="backBtn">رجوع</button>
+</section>
+
+<script>
+const Q = [
+["ما هو أكبر كوكب في المجموعة الشمسية؟",["المشتري","زحل","الأرض","المريخ"],0],
+["كم عدد قارات العالم؟",["5","6","7","8"],2],
+["ما عاصمة المغرب؟",["الدار البيضاء","الرباط","مراكش","فاس"],1],
+["ما أطول نهر في أفريقيا؟",["النيل","الكونغو","النيجر","الزامبيزي"],0],
+["ما العنصر الذي رمزه الكيميائي O؟",["الذهب","الأكسجين","الحديد","الفضة"],1],
+["في أي عام انتهت الحرب العالمية الثانية؟",["1939","1945","1950","1918"],1],
+["من رسم لوحة الموناليزا؟",["بيكاسو","ليوناردو دافنشي","فان جوخ","مايكل أنجلو"],1],
+["ما أكبر محيط في العالم؟",["الأطلسي","الهندي","الهادئ","المتجمد الشمالي"],2],
+["كم عدد لاعبي فريق كرة القدم داخل الملعب؟",["9","10","11","12"],2],
+["ما عاصمة اليابان؟",["طوكيو","أوساكا","كيوتو","سيول"],0],
+["أي حيوان يُلقب بملك الغابة؟",["النمر","الأسد","الفيل","الذئب"],1],
+["ما أصغر دولة في العالم مساحةً؟",["موناكو","الفاتيكان","مالطا","ليختنشتاين"],1],
+["كم عدد أضلاع الشكل السداسي؟",["5","6","7","8"],1],
+["ما أسرع حيوان بري؟",["الفهد","الحصان","الأسد","الغزال"],0],
+["ما اللغة الرسمية في البرازيل؟",["الإسبانية","البرتغالية","الإنجليزية","الفرنسية"],1],
+["أي كوكب يُعرف بالكوكب الأحمر؟",["الزهرة","المريخ","عطارد","أورانوس"],1],
+["كم عدد أسنان الإنسان البالغ؟",["28","30","32","36"],2],
+["ما أعلى جبل في العالم؟",["إفرست","كيه تو","كليمنجارو","الألب"],0],
+["من أول إنسان وطأت قدماه سطح القمر؟",["يوري جاجارين","نيل أرمسترونج","باز ألدرين","جون جلين"],1],
+["ما عاصمة السعودية؟",["جدة","الرياض","مكة","الدمام"],1],
+["ما أكبر صحراء حارة في العالم؟",["الصحراء الكبرى","صحراء كالاهاري","الربع الخالي","صحراء النقب"],0],
+["كم عدد ألوان قوس قزح؟",["5","6","7","8"],2],
+["أين تقع أهرامات الجيزة الشهيرة؟",["الجيزة","الأقصر","أسوان","الإسكندرية"],0],
+["ما أكبر عضو في جسم الإنسان؟",["الكبد","الجلد","الرئتان","القلب"],1],
+["من فاز بكأس العالم لكرة القدم 2022؟",["فرنسا","الأرجنتين","البرازيل","كرواتيا"],1],
+["ما عاصمة الإمارات العربية المتحدة؟",["دبي","أبوظبي","الشارقة","العين"],1],
+["كم يساوي 12 × 12؟",["124","144","134","154"],1],
+["عند أي درجة مئوية يتجمد الماء؟",["0","10","-10","100"],0],
+["ما أصغر كوكب في المجموعة الشمسية؟",["عطارد","المريخ","الزهرة","نبتون"],0],
+["في أي عام ميلادي كانت الهجرة النبوية؟",["622","610","632","570"],0],
+["من مؤلف كتاب «الأيام»؟",["طه حسين","نجيب محفوظ","توفيق الحكيم","العقاد"],0],
+["في أي دولة يُقام سباق «تور دو فرانس» للدراجات؟",["إيطاليا","فرنسا","إسبانيا","بلجيكا"],1],
+["ما عاصمة فرنسا؟",["باريس","ليون","مرسيليا","نيس"],0],
+["ما عاصمة ألمانيا؟",["ميونخ","برلين","هامبورغ","فرانكفورت"],1],
+["ما عاصمة إيطاليا؟",["ميلانو","نابولي","روما","فلورنسا"],2],
+["ما عاصمة تركيا؟",["إسطنبول","أنقرة","إزمير","بورصة"],1],
+["ما عاصمة الجزائر؟",["وهران","الجزائر","قسنطينة","عنابة"],1],
+["ما عاصمة العراق؟",["بغداد","البصرة","الموصل","أربيل"],0],
+["ما عاصمة الأردن؟",["عمّان","الزرقاء","إربد","العقبة"],0],
+["ما عاصمة تونس؟",["صفاقس","سوسة","تونس","بنزرت"],2],
+["ما عاصمة السودان؟",["أم درمان","الخرطوم","بورتسودان","كسلا"],1],
+["ما عاصمة كندا؟",["تورنتو","أوتاوا","مونتريال","فانكوفر"],1],
+["ما عاصمة أستراليا؟",["سيدني","ملبورن","كانبيرا","بيرث"],2],
+["ما عاصمة البرازيل؟",["ريو دي جانيرو","برازيليا","ساو باولو","سلفادور"],1],
+["ما أكبر دولة في العالم مساحةً؟",["روسيا","كندا","الصين","الولايات المتحدة"],0],
+["ما أكبر دولة عربية مساحةً؟",["الجزائر","السعودية","السودان","ليبيا"],0],
+["أين يقع برج إيفل؟",["لندن","باريس","روما","برلين"],1],
+["ما أكبر قارة في العالم مساحةً؟",["أفريقيا","آسيا","أوروبا","أمريكا الشمالية"],1],
+["ما أصغر قارة في العالم مساحةً؟",["أستراليا","أوروبا","أنتاركتيكا","أمريكا الجنوبية"],0],
+["ما الغاز الذي تمتصه النباتات من الجو؟",["الأكسجين","النيتروجين","ثاني أكسيد الكربون","الهيدروجين"],2],
+["ما أقرب كوكب إلى الشمس؟",["عطارد","الزهرة","الأرض","المريخ"],0],
+["كم عدد عظام جسم الإنسان البالغ؟",["106","206","306","406"],1],
+["ما الصيغة الكيميائية للماء؟",["CO2","H2O","O2","NaCl"],1],
+["أي عضو يضخ الدم في الجسم؟",["القلب","الكبد","الكلى","الرئة"],0],
+["أي كوكب يشتهر بحلقاته الواضحة؟",["زحل","المريخ","الأرض","عطارد"],0],
+["ما العنصر الذي رمزه الكيميائي Fe؟",["الحديد","الفضة","الفلور","الرصاص"],0],
+["ما اسم المجرة التي تقع فيها الأرض؟",["درب التبانة","أندروميدا","المثلث","الدوامة"],0],
+["ما أقرب نجم إلى الأرض؟",["الشمس","بروكسيما سنتوري","سيريوس","الدبران"],0],
+["في أي حضارة بُنيت أهرامات الجيزة؟",["المصرية القديمة","الرومانية","اليونانية","الفارسية"],0],
+["من هو أول الخلفاء الراشدين؟",["أبو بكر الصديق","عمر بن الخطاب","عثمان بن عفان","علي بن أبي طالب"],0],
+["من مؤلف «الثلاثية» الشهيرة (بين القصرين)؟",["نجيب محفوظ","يوسف إدريس","إحسان عبد القدوس","طه حسين"],0],
+["في أي عام قامت ثورة يوليو في مصر؟",["1948","1952","1956","1967"],1],
+["في أي عام وقعت حرب أكتوبر؟",["1967","1973","1956","1982"],1],
+["من يُنسب إليه اختراع الهاتف؟",["ألكسندر جراهام بيل","توماس إديسون","ماركوني","نيكولا تسلا"],0],
+["من هو أحد مؤسسي شركة مايكروسوفت؟",["بيل غيتس","ستيف جوبز","إيلون ماسك","مارك زوكربيرغ"],0],
+["أي دولة أهدت تمثال الحرية للولايات المتحدة؟",["فرنسا","بريطانيا","إيطاليا","ألمانيا"],0],
+["من صاحب قانون الجاذبية العام؟",["إسحاق نيوتن","غاليليو","أينشتاين","كوبرنيكوس"],0],
+["كم دقيقة مدة مباراة كرة القدم الأساسية؟",["60","90","80","100"],1],
+["كم لاعباً من كل فريق داخل الملعب في كرة السلة؟",["5","6","7","11"],0],
+["في أي رياضة تُستخدم الريشة والمضرب؟",["التنس","الريشة الطائرة","الإسكواش","تنس الطاولة"],1],
+["كم عدد الحلقات في شعار الأولمبياد؟",["4","5","6","7"],1],
+["أي دولة استضافت كأس العالم 2022؟",["قطر","روسيا","البرازيل","ألمانيا"],0],
+["من هو اللاعب المصري الشهير بلقب «الفرعون المصري»؟",["محمد صلاح","محمود تريزيجيه","محمد النني","عمر مرموش"],0],
+["كم يومًا في السنة الكبيسة؟",["365","366","364","360"],1],
+["ما العملة الرسمية في اليابان؟",["الين","الوون","اليوان","الدولار"],0],
+["ما العملة الرسمية في بريطانيا؟",["الجنيه الإسترليني","اليورو","الدولار","الفرنك"],0],
+["ما ناتج 9 × 8؟",["72","64","81","63"],0],
+["ما أطول برج في العالم؟",["برج خليفة","برج الساعة","برج شنغهاي","برج إيفل"],0]
+];
+const $ = id => document.getElementById(id);
+const TOTAL = 10, SECS = 15;
+let qs, idx, score, correct, left, timer, daily, locked;
+
+function store(k, v) {
+  try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; }
+}
+function dayKey(d = new Date()) { return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+function hash(s) { let h = 0; for (const c of s) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0; return h; }
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function shuffle(a, r) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function show(id) { document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id)); }
+
+function pid() { let p = store("pid"); if (!p) { p = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); store("pid", p); } return p; }
+function pname() { let n = (store("pname") || "").trim(); if (!n) { n = "لاعب" + Math.floor(100 + Math.random() * 900); store("pname", n); } return n; }
+async function showBoard(ol) {
+  ol.innerHTML = "";
+  const msg = t => { ol.innerHTML = ""; const li = document.createElement("li"); li.className = "muted"; li.textContent = t; ol.appendChild(li); };
+  msg("جاري التحميل…");
+  try {
+    const rows = await window.cloud.top(dayKey());
+    if (!rows.length) return msg("مفيش نتايج لسه، كن أول واحد!");
+    ol.innerHTML = "";
+    rows.forEach(r => {
+      const li = document.createElement("li");
+      li.textContent = `${r.name} — ${r.score}`;
+      if (r.id === pid()) li.style.fontWeight = "700";
+      ol.appendChild(li);
+    });
+  } catch (e) { msg("الترتيب مش متاح دلوقتي (محتاج اتصال بالنت)"); }
+}
+
+function home() {
+  show("home");
+  $("nameIn").value = store("pname") || "";
+  $("streak").textContent = store("streak") || 0;
+  $("bestAll").textContent = store("bestAll") || 0;
+  const d = JSON.parse(store("daily_" + dayKey()) || "null");
+  $("dailyBtn").disabled = !!d;
+  $("dailyNote").textContent = d ? `خلصت تحدي النهاردة: ${d.score} نقطة. تعال بكرة لتحدي جديد!` : "نفس الأسئلة لكل اللاعبين النهاردة";
+}
+
+function start(isDaily) {
+  daily = isDaily;
+  const r = isDaily ? rng(hash(dayKey())) : Math.random;
+  qs = shuffle(Q, r).slice(0, TOTAL).map(([q, o, c]) => {
+    const opts = shuffle(o, r);
+    return { q, opts, a: opts.indexOf(o[c]) };
+  });
+  idx = 0; score = 0; correct = 0;
+  show("game");
+  next();
+}
+
+function next() {
+  if (idx >= TOTAL) return finish();
+  locked = false; left = SECS;
+  const cur = qs[idx];
+  $("prog").textContent = `سؤال ${idx + 1} من ${TOTAL}`;
+  $("score").textContent = score;
+  $("q").textContent = cur.q;
+  const box = $("opts"); box.innerHTML = "";
+  cur.opts.forEach((t, k) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = t; b.onclick = () => answer(k);
+    box.appendChild(b);
+  });
+  const bar = $("barI");
+  bar.style.transition = "none"; bar.style.width = "100%";
+  void bar.offsetWidth;
+  bar.style.transition = ""; bar.style.width = "0%";
+  bar.style.transitionDuration = SECS + "s";
+  clearInterval(timer);
+  timer = setInterval(() => { left--; if (left <= 0) answer(-1); }, 1000);
+}
+
+function answer(k) {
+  if (locked) return;
+  locked = true; clearInterval(timer);
+  $("barI").style.transitionDuration = "0s";
+  const cur = qs[idx], btns = $("opts").children;
+  btns[cur.a].classList.add("ok");
+  if (k === cur.a) { correct++; score += 100 + Math.max(left, 0) * 5; }
+  else if (k >= 0) btns[k].classList.add("bad");
+  $("score").textContent = score;
+  setTimeout(() => { idx++; next(); }, 900);
+}
+
+function finish() {
+  clearInterval(timer);
+  if (daily) {
+    store("daily_" + dayKey(), JSON.stringify({ score, correct }));
+    const y = dayKey(new Date(Date.now() - 864e5));
+    store("streak", (store("last") === y ? (+store("streak") || 0) + 1 : 1));
+    store("last", dayKey());
+  }
+  if (score > (+store("bestAll") || 0)) store("bestAll", score);
+  let top = [];
+  try { top = JSON.parse(store("top") || "[]"); } catch (e) {}
+  top.push({ s: score, d: new Date().toLocaleDateString("ar-EG") });
+  top = top.sort((a, b) => b.s - a.s).slice(0, 5);
+  store("top", JSON.stringify(top));
+  $("rTitle").textContent = correct >= 8 ? "🏆 رائع!" : correct >= 5 ? "👏 كويس!" : "💪 حاول تاني";
+  $("rScore").textContent = score;
+  $("rCorrect").textContent = `إجابات صحيحة: ${correct} من ${TOTAL}`;
+  $("topList").innerHTML = top.map(t => `<li>${t.s} نقطة <span class="muted">(${t.d})</span></li>`).join("");
+  $("dayCard").style.display = daily ? "block" : "none";
+  show("result");
+  if (daily) Promise.resolve().then(() => window.cloud.submit(pid(), pname(), score, correct, dayKey())).catch(() => {}).then(() => showBoard($("dayList")));
+}
+
+$("dailyBtn").onclick = () => start(true);
+$("practiceBtn").onclick = () => start(false);
+$("homeBtn").onclick = home;
+$("backBtn").onclick = home;
+$("boardBtn").onclick = () => { show("board"); showBoard($("boardList")); };
+$("nameIn").oninput = e => store("pname", e.target.value.trim().slice(0, 20));
+$("shareBtn").onclick = async () => {
+  const text = `جبت ${score} نقطة (${correct}/${TOTAL}) في تحدي المعلومات 🧠 تقدر تكسرني؟`;
+  try {
+    if (navigator.share) await navigator.share({ text });
+    else { await navigator.clipboard.writeText(text); $("shareBtn").textContent = "تم النسخ ✓"; }
+  } catch (e) {}
+};
+home();
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, doc, setDoc, collection, query, where, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDchT0oTOEtLFchGqmR2ufRVXNo4ddltwc",
+  authDomain: "trivia-challenge-ar.firebaseapp.com",
+  projectId: "trivia-challenge-ar",
+  storageBucket: "trivia-challenge-ar.firebasestorage.app",
+  messagingSenderId: "592433834079",
+  appId: "1:592433834079:web:cdea26afb0fd2bf7afd3ea"
+};
+
+const db = getFirestore(initializeApp(firebaseConfig));
+window.cloud = {
+  submit: (id, name, score, correct, day) =>
+    setDoc(doc(db, "scores", day + "_" + id), { name, score, correct, day, ts: serverTimestamp() }),
+  top: async day => {
+    const snap = await getDocs(query(collection(db, "scores"), where("day", "==", day), limit(200)));
+    return snap.docs
+      .map(d => ({ id: d.id.split("_").slice(1).join("_"), ...d.data() }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+  }
+};
+</script>
+</body>
+</html>
